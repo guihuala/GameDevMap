@@ -72,5 +72,24 @@
       }
     ],
     "tags": ["正式社团", "游戏开发", "技术", "Unreal", "Unity", "Godot", "Gamejam"]
+  },
+  {
+    "id": "cdtu-hivest",
+    "name": "蜂巢工作室",
+    "school": "成都工业学院",
+    "city": "成都",
+    "province": "四川省",
+    "latitude":  30.7872,
+    "longitude": 103.8848,
+    "logo_url": "assets/logos/cdtu-hivest.png",
+    "short_description": "我们是成都工业学院The Hivest Studio--蜂巢工作室",
+    "long_description": "蜂巢工作室成立于2017年。我们汇聚了一群热爱游戏、热衷开发的志同道合者，致力于为成员提供学习、实践与展示的平台，助力每一位怀揣梦想的游戏开发者成长。",
+    "external_links": [
+      {
+        "type": "website",
+        "url": "https://bqt4a2kph6x.feishu.cn/wiki/GpHpwcLT2iunl2kmFt7cYDbrnhe"
+      }
+    ],
+    "tags": ["正式社团","游戏开发","技术","Unity", "Godot","Gamejam","闲聊"]
   }
 ]
