@@ -90,36 +90,76 @@ function showClubDetails(club) {
     const sidebar = document.getElementById('sidebar');
     const toggleBtn = document.getElementById('toggleSidebar');
     
-    let linksHtml = '';
-    if (club.external_links && club.external_links.length > 0) {
-        linksHtml = '<div class="club-links"><h3>外部链接</h3>';
-        club.external_links.forEach(link => {
-            linksHtml += `<a href="${link.url}" target="_blank" class="link-item">${link.type}: ${link.url}</a>`;
-        });
-        linksHtml += '</div>';
+    const template = document.getElementById('club-detail-template');
+    const content = template.content.cloneNode(true);
+    
+    const logoImg = content.querySelector('.club-logo');
+    if (club.logo_url) {
+        logoImg.src = club.logo_url;
+        logoImg.style.display = 'block';
+    } else {
+        logoImg.style.display = 'none';
     }
     
-    let tagsHtml = '';
+    content.querySelector('.club-name').textContent = club.name;
+    content.querySelector('.club-school').textContent = `${club.school} - ${club.city}, ${club.province}`;
+    
+    // 简介
+    const descDiv = content.querySelector('.club-description');
+    if (club.short_description || club.long_description) {
+        let desc = '';
+        if (club.short_description) {
+            desc = `简介: ${club.short_description}`;
+            if (club.long_description) desc += ` ${club.long_description}`;
+        } else {
+            desc = club.long_description;
+        }
+        descDiv.textContent = desc;
+    } else {
+        descDiv.style.display = 'none';
+    }
+    
+    // 标签
+    const tagsDiv = content.querySelector('.club-tags');
     if (club.tags && club.tags.length > 0) {
-        tagsHtml = '<div class="club-tags">';
+        tagsDiv.innerHTML = '';
         club.tags.forEach(tag => {
-            tagsHtml += `<span class="tag">${tag}</span>`;
+            const span = document.createElement('span');
+            span.className = 'tag';
+            span.textContent = tag;
+            tagsDiv.appendChild(span);
         });
-        tagsHtml += '</div>';
+    } else {
+        tagsDiv.style.display = 'none';
     }
     
-    detailsDiv.innerHTML = `
-        ${club.logo_url ? `<img src="${club.logo_url}" alt="${club.name}" class="club-logo">` : ''}
-        <h2 class="club-name">${club.name}</h2>
-        <p class="club-school">${club.school} - ${club.city}, ${club.province}</p>
-        ${club.short_description ? `<p class="club-description"><strong>简介:</strong> ${club.short_description}</p>` : ''}
-        ${club.long_description ? `<p class="club-description">${club.long_description}</p>` : ''}
-        ${tagsHtml}
-        ${linksHtml}
-        <button class="locate-btn" onclick="locateClub(${club.latitude}, ${club.longitude})">定位到地图</button>
-    `;
+    // 外部链接
+    const linksDiv = content.querySelector('.club-links');
+    if (club.external_links && club.external_links.length > 0) {
+        linksDiv.innerHTML = '';
+        const h3 = document.createElement('h3');
+        h3.textContent = '外部链接';
+        linksDiv.appendChild(h3);
+        
+        club.external_links.forEach(link => {
+            const a = document.createElement('a');
+            a.href = link.url;
+            a.target = '_blank';
+            a.className = 'link-item';
+            a.textContent = `${link.type}: ${link.url}`;
+            linksDiv.appendChild(a);
+        });
+    } else {
+        linksDiv.style.display = 'none';
+    }
     
-    // 自动展开侧边栏
+    // 定位按钮
+    const locateBtn = content.querySelector('.locate-btn');
+    locateBtn.onclick = () => locateClub(club.latitude, club.longitude);
+    
+    detailsDiv.innerHTML = '';
+    detailsDiv.appendChild(content);
+    
     sidebar.classList.add('active');
     toggleBtn.classList.add('hidden');
 }
@@ -151,16 +191,28 @@ function setupSearch() {
         );
         
         if (results.length === 0) {
-            searchResults.innerHTML = '<p style="padding: 10px; color: #999;">未找到匹配</p>';
+            searchResults.innerHTML = '';
+            const p = document.createElement('p');
+            p.style.cssText = 'padding: 10px; color: #999;';
+            p.textContent = '未找到匹配';
+            searchResults.appendChild(p);
             return;
         }
         
-        searchResults.innerHTML = results.map(club => `
-            <div class="search-result-item" onclick="selectSearchResult('${club.id}')">
-                <h3>${club.name}</h3>
-                <p>${club.school} - ${club.city}</p>
-            </div>
-        `).join('');
+        // 使用模板渲染搜索结果
+        searchResults.innerHTML = '';
+        const template = document.getElementById('search-result-template');
+        
+        results.forEach(club => {
+            const item = template.content.cloneNode(true);
+            item.querySelector('h3').textContent = club.name;
+            item.querySelector('p').textContent = `${club.school} - ${club.city}`;
+            
+            const div = item.querySelector('.search-result-item');
+            div.onclick = () => selectSearchResult(club.id);
+            
+            searchResults.appendChild(item);
+        });
     });
 }
 
@@ -219,7 +271,7 @@ function isChineseProvince(province) {
 
 // 创建省份列表
 function createProvinceList() {
-    const provinceList = document.getElementById('provinceList');
+    const provinceListContainer = document.getElementById('provinceList');
     
     // 提取所有省份并去重
     const provinces = new Set();
@@ -242,20 +294,33 @@ function createProvinceList() {
     });
     
     // 添加"全部"选项
-    let html = '<div class="province-item all active" data-province="all">全部</div>';
+    provinceListContainer.innerHTML = '';
+    
+    // 创建"全部"按钮
+    const allBtn = document.createElement('div');
+    allBtn.className = 'province-item all active';
+    allBtn.dataset.province = 'all';
+    allBtn.textContent = '全部';
+    provinceListContainer.appendChild(allBtn);
     
     // 添加省份选项
     provinceArray.forEach(province => {
-        html += `<div class="province-item" data-province="${province}">${province}</div>`;
+        const btn = document.createElement('div');
+        btn.className = 'province-item';
+        btn.dataset.province = province;
+        btn.textContent = province;
+        provinceListContainer.appendChild(btn);
     });
     
     // 添加"其他"选项（国外）
-    html += '<div class="province-item" data-province="其他">其他</div>';
-    
-    provinceList.innerHTML = html;
+    const otherBtn = document.createElement('div');
+    otherBtn.className = 'province-item';
+    otherBtn.dataset.province = '国外';
+    otherBtn.textContent = '国外';
+    provinceListContainer.appendChild(otherBtn);
     
     // 添加点击事件
-    provinceList.addEventListener('click', (e) => {
+    provinceListContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('province-item')) {
             const province = e.target.dataset.province;
             filterByProvince(province);
@@ -302,28 +367,45 @@ function showProvinceClubs(province) {
     }
     
     if (filteredClubs.length === 0) {
-        detailsDiv.innerHTML = `<p>该省份暂无社团数据</p>`;
+        detailsDiv.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = '该省份暂无社团数据';
+        detailsDiv.appendChild(p);
         return;
     }
     
-    let provinceTitle = province === 'all' ? '全部' : province;
-    let html = `<h3>${provinceTitle}社团 (${filteredClubs.length}个)</h3>`;
-    html += '<div class="province-clubs-list">';
+    // 清空并创建标题
+    detailsDiv.innerHTML = '';
+    const title = document.createElement('h3');
+    const provinceTitle = province === 'all' ? '全部' : province;
+    title.textContent = `${provinceTitle}社团 (${filteredClubs.length}个)`;
+    detailsDiv.appendChild(title);
+    
+    const listDiv = document.createElement('div');
+    listDiv.className = 'province-clubs-list';
+    
+    const template = document.getElementById('province-club-template');
     
     filteredClubs.forEach(club => {
-        html += `
-            <div class="province-club-item" onclick="selectClub('${club.id}')">
-                ${club.logo_url ? `<img src="${club.logo_url}" alt="${club.name}" class="province-club-logo">` : ''}
-                <div class="province-club-info">
-                    <h4>${club.name}</h4>
-                    <p>${club.school} - ${club.city}</p>
-                </div>
-            </div>
-        `;
+        const item = template.content.cloneNode(true);
+        
+        const logo = item.querySelector('.province-club-logo');
+        if (club.logo_url) {
+            logo.src = club.logo_url;
+        } else {
+            logo.style.display = 'none';
+        }
+        
+        item.querySelector('h4').textContent = club.name;
+        item.querySelector('p').textContent = `${club.school} - ${club.city}`;
+        
+        const clubItem = item.querySelector('.province-club-item');
+        clubItem.onclick = () => selectClub(club.id);
+        
+        listDiv.appendChild(item);
     });
     
-    html += '</div>';
-    detailsDiv.innerHTML = html;
+    detailsDiv.appendChild(listDiv);
 }
 
 // 选择社团（从省份列表中）
